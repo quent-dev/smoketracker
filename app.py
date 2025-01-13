@@ -1,6 +1,6 @@
 # app.py
 from flask import Flask, render_template, jsonify, request
-from datetime import datetime
+from datetime import datetime, timezone
 from db_utils import DatabaseManager
 from cigarette_tracker import CigaretteTracker
 
@@ -24,7 +24,6 @@ def add_cigarette():
 
 @app.route('/api/stats/today', methods=['GET'])
 def get_today_stats():
-    # Add debug logging
     print("Getting today's stats...")
     
     stats = tracker.get_stats_for_day()
@@ -37,20 +36,19 @@ def get_today_stats():
     time_since_last = "No cigarettes today"
     
     if cigarettes:
-        # Get the most recent cigarette
-        most_recent = cigarettes[0]  # They're ordered by timestamp DESC
+        most_recent = cigarettes[0]
         print(f"Most recent cigarette: {most_recent}")
         
         try:
-            # Ensure we're handling timezone consistently
+            # Parse timestamp and convert to local time
             last_cigarette_time = datetime.strptime(
                 most_recent['timestamp'], 
                 '%Y-%m-%d %H:%M:%S'
-            )
-            now = datetime.now()
+            ).replace(tzinfo=timezone.utc).astimezone()  # Convert UTC to local
+            now = datetime.now().astimezone()  # Get local time with timezone
             
-            print(f"Last cigarette time: {last_cigarette_time}")
-            print(f"Current time: {now}")
+            print(f"Last cigarette time (local): {last_cigarette_time}")
+            print(f"Current time (local): {now}")
             
             # Calculate time difference
             diff = now - last_cigarette_time
