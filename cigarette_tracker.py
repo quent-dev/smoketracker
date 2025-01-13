@@ -95,15 +95,38 @@ class CigaretteTracker:
         """Get all cigarettes for a specific day."""
         if day is None:
             day = date.today()
-            
+        print(f"Fetching cigarettes for date: {day}")
+        
         with self.db.get_connection() as conn:
+            # Debug: Check what's in the cigarettes table
+            cursor = conn.execute("SELECT COUNT(*) as count FROM cigarettes")
+            total_count = cursor.fetchone()['count']
+            print(f"Total cigarettes in database: {total_count}")
+            
+            # Debug: Show a sample of raw timestamps
             cursor = conn.execute("""
+                SELECT timestamp, date(timestamp, 'localtime') as formatted_date 
+                FROM cigarettes 
+                LIMIT 3""")
+            samples = cursor.fetchall()
+            print("Sample timestamps from DB:")
+            for sample in samples:
+                print(f"Raw timestamp: {sample['timestamp']}, Formatted date: {sample['formatted_date']}")
+            
+            # Original query with parameter logging
+            query = """
                 SELECT id, timestamp, notes, trigger_category, location
                 FROM cigarettes
-                WHERE date(timestamp) = ?
+                WHERE date(timestamp, 'localtime') = ?
                 ORDER BY timestamp DESC
-                """, (day,))
-            return [dict(row) for row in cursor.fetchall()]
+            """
+            print(f"Executing query: {query}")
+            print(f"With parameter: {day.isoformat()}")
+            
+            cursor = conn.execute(query, (day.isoformat(),))
+            results = [dict(row) for row in cursor.fetchall()]
+            print(f"Query returned {len(results)} results")
+            return results
 
     def get_stats_for_day(self, day: date = None) -> Dict:
         """Get statistics for a specific day."""
